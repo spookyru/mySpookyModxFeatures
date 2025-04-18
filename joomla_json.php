@@ -126,14 +126,14 @@ foreach ($data as $item) {
       for ($i = 0; $i < $uniqueUsers; $i++) {
         $userKey = md5(uniqid($resource->get('id') . $i, true));
 
-        // Данные для spks_stat_online_users
+        // Данные для _stat_online_users
         $onlineUsersData[] = [
           'user_key' => $userKey,
           'date' => date('Y-m-d H:i:s', strtotime("+$i seconds", $created)),
           'last_active' => date('Y-m-d H:i:s', strtotime("+$i seconds", $created)),
         ];
 
-        // Данные для spks_stat_page_statistics
+        // Данные для _stat_page_statistics
         $pageStatisticsData[] = [
           'rid' => $resource->get('id'),
           'user_key' => $userKey,
@@ -143,7 +143,7 @@ foreach ($data as $item) {
           'views' => rand(1, $viewsPerUser),
         ];
       }
-      // Выполняем массовую вставку для spks_stat_online_users
+      // Выполняем массовую вставку для _stat_online_users
       if (!empty($onlineUsersData)) {
         $modx->exec("INSERT INTO {$modx->getTableName('UserStatistics')} (user_key, date, last_active) VALUES " . implode(',', array_map(function ($data) {
           return "('" . implode("','", $data) . "')";
@@ -151,9 +151,9 @@ foreach ($data as $item) {
         $uniqueUsersCount += count($onlineUsersData);
       }
 
-      // Выполняем массовую вставку для spks_stat_page_statistics
+      // Выполняем массовую вставку для _stat_page_statistics
       if (!empty($pageStatisticsData)) {
-        $modx->exec("INSERT INTO spks_stat_page_statistics (rid, user_key, date, month, year, views) VALUES " . implode(',', array_map(function ($data) {
+        $modx->exec("INSERT INTO {$modx->getTableName('PageStatistics')} (rid, user_key, date, month, year, views) VALUES " . implode(',', array_map(function ($data) {
           return "('" . implode("','", $data) . "')";
         }, $pageStatisticsData)));
         $hitsCount += array_sum(array_column($pageStatisticsData, 'views'));
@@ -171,4 +171,5 @@ echo "<hr> Импорт завершён <br>";
 echo "Создано категорий: " . count($collections) . "<br>";
 echo "Импортировано материалов: $materialsCount  <br>";
 echo "Импортировано записей статистики: $hitsCount <br>";
+
 ?>
