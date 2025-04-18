@@ -1,4 +1,5 @@
 *
-!joomla.php
+!joomla_json.php
+!sql_simple.sql
 !README.md
 !/.gitignore
