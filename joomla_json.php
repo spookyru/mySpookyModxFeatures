@@ -28,7 +28,7 @@ if (!$data) {
 
 // Подключение пакета SiteStatistics
 $modx->addPackage('sitestatistics', MODX_CORE_PATH . 'components/sitestatistics/model/');
-
+  
 // Создаем коллекции и материалы
 $collections = [];
 $materialsCount = 0;
@@ -68,11 +68,15 @@ foreach ($data as $item) {
         'content' => $item['introtext'] . $item['fulltext'], // Конкатенируем introtext и fulltext
         'published' => 1,
         'createdon' => strtotime($item['created']),
+        'publishedon' => strtotime(datetime: $item['modified']), // Дата публикации для сортировки в modx или можно в другое поле дату создания материала
         'editedon' => strtotime($item['modified']),
         'hidemenu' => 0,
         'searchable' => 1,
         'introtext' => $item['introtext'], // Заполняем аннотацию
         'class_key' => 'modDocument', // Обычный документ
+        'description' => $item['metadesc'], //добавлено
+        'keywords' => $item['metakey']
+        //'tags' => $item['tags'] ?? '', // нужно будет добавить в экспорт из Joomla!
     ]);
 
     if ($resource->save()) {
