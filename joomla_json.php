@@ -20,7 +20,7 @@ if (!file_exists($jsonFile)) {
 
 // Загружаем и декодируем JSON
 $jsonContent = file_get_contents($jsonFile);
-$data = json_decode($jsonContent, true);
+$data = array_reverse(json_decode($jsonContent, true));
 
 if (!$data) {
     die("Неверный формат JSON файла.");
@@ -68,7 +68,7 @@ foreach ($data as $item) {
         'content' => $item['introtext'] . $item['fulltext'], // Конкатенируем introtext и fulltext
         'published' => 1,
         'createdon' => strtotime($item['created']),
-        'publishedon' => strtotime(datetime: $item['modified']), // Дата публикации для сортировки в modx или можно в другое поле дату создания материала
+        'publishedon' => !empty($item['modified']) ? strtotime($item['modified']) : strtotime($item['created']), // Дата публикации для сортировки в modx или можно в другое поле дату создания материала
         'editedon' => strtotime($item['modified']),
         'hidemenu' => 0,
         'searchable' => 1,
