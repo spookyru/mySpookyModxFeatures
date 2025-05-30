@@ -6,15 +6,61 @@ ModxApiTalk.window.CreateSource = function (config) {
     Ext.applyIf(config, {
         title: _('modxapitalk_source_create'),
         width: 550,
-        autoHeight: true,
+      autoHeight: false,
+        scrollable: true,
         url: ModxApiTalk.config.connector_url,
         action: 'ModxApiTalk\\Processors\\ApiSource\\Create',
-        fields: this.getFields(config),
+      fields: this.getFields(config),
+        
         keys: [{
             key: Ext.EventObject.ENTER, shift: true, fn: function () {
                 this.submit()
             }, scope: this
-        }]
+      }],
+        listeners: {
+          beforeSubmit: {
+            fn: function (fp) {
+              const form = fp.getForm();
+
+              // --- Параметры ---
+              const rawParams = form.findField('params').getValue();
+              const paramLines = rawParams.split('\n');
+              const paramsObj = {};
+              paramLines.forEach(line => {
+                const parts = line.split(':');
+                if (parts.length === 2) {
+                  const key = parts[0].trim();
+                  const raw = parts[1].trim();
+                  const values = raw.includes(',') ? raw.split(',').map(v => v.trim()) : raw;
+                  paramsObj[key] = values;
+                }
+              });
+              form.findField('params').setValue(JSON.stringify(paramsObj));
+
+              // --- Query Param ---
+              const queryEnabled = form.findField('query_param_enabled').getValue();
+              const queryName = form.findField('query_param_value').getValue();
+              if (queryEnabled && queryName) {
+                form.findField('query_param').setValue(JSON.stringify({ name_query: queryName }));
+              } else {
+                form.findField('query_param').setValue('');
+              }
+
+              // --- Extract Keys ---
+              const rawExtractKeys = form.findField('extract_keys').getValue();
+              if (rawExtractKeys && typeof rawExtractKeys === 'string') {
+                const arr = rawExtractKeys
+                  .split(',')
+                  .map(k => k.trim())
+                  .filter(Boolean);
+                form.findField('extract_keys').setValue(JSON.stringify(arr));
+              }
+
+              return true;
+            },
+            scope: this
+          }
+        }
     });
     ModxApiTalk.window.CreateSource.superclass.constructor.call(this, config);
 };
@@ -135,7 +181,32 @@ Ext.extend(ModxApiTalk.window.CreateSource, MODx.Window, {
               message: _('modxapitalk_json_saved')
             });
           }
-        },        
+        },       
+        {
+  xtype: 'xcheckbox',
+  id: config.id + '-query-param-enabled',
+  boxLabel: _('modxapitalk_include_query_param'),
+  name: 'query_param_enabled',
+  inputValue: 1,
+  checked: false,
+  listeners: {
+    check: function (cb, checked) {
+      Ext.getCmp(config.id + '-query-param-field').setVisible(checked);
+    }
+  }
+},
+{
+  xtype: 'textfield',
+  id: config.id + '-query-param-field',
+  fieldLabel: _('modxapitalk_query_param_name'),
+  name: 'query_param_value',
+  anchor: '100%',
+  hidden: true
+},
+{
+  xtype: 'hidden',
+  name: 'query_param'
+},
         {
       xtype: 'button',
       style: 'margin-top: 10px',
@@ -182,7 +253,7 @@ Ext.extend(ModxApiTalk.window.CreateSource, MODx.Window, {
         anchor: '100%',
         grow: true,
         height: 80,
-        emptyText: '["title","url","image"]'
+       emptyText: 'title, url, image'
     }, {
         xtype: 'xcheckbox',
         boxLabel: _('modxapitalk_source_active'),
@@ -200,90 +271,188 @@ Ext.reg('modxapitalk-source-window-create', ModxApiTalk.window.CreateSource);
 
 
 ModxApiTalk.window.UpdateSource = function (config) {
-    config = config || {};
-    if (!config.id) {
-        config.id = 'modxapitalk-source-window-update';
+  config = config || {};
+  if (!config.id) {
+    config.id = 'modxapitalk-source-window-update';
+  }
+  Ext.applyIf(config, {
+    title: _('modxapitalk_source_update'),
+    width: 550,
+    autoHeight: true,
+    url: ModxApiTalk.config.connector_url,
+    action: 'ModxApiTalk\\Processors\\ApiSource\\Update',
+    fields: this.getFields(config),
+    keys: [{
+      key: Ext.EventObject.ENTER, shift: true, fn: function () {
+        this.submit()
+      }, scope: this
+    }],
+    listeners: {
+      beforeSubmit: {
+        fn: function (fp) {
+          const form = fp.getForm();
+
+          // --- Обработка params ---
+          const rawParams = form.findField('params').getValue();
+          const paramLines = rawParams.split('\n');
+          const paramsObj = {};
+
+          paramLines.forEach(line => {
+            const parts = line.split(':');
+            if (parts.length === 2) {
+              const key = parts[0].trim();
+              const raw = parts[1].trim();
+              const values = raw.includes(',') ? raw.split(',').map(v => v.trim()) : raw;
+              paramsObj[key] = values;
+            }
+          });
+
+          form.findField('params').setValue(JSON.stringify(paramsObj));
+
+          // --- Обработка query_param ---
+          const queryEnabled = form.findField('query_param_enabled').getValue();
+          const queryName = form.findField('query_param_value').getValue();
+          if (queryEnabled && queryName) {
+            form.findField('query_param').setValue(JSON.stringify({ name_query: queryName }));
+          } else {
+            form.findField('query_param').setValue('');
+          }
+
+          return true;
+        }, scope: this
+      }
     }
-    Ext.applyIf(config, {
-        title: _('modxapitalk_source_update'),
-        width: 550,
-        autoHeight: true,
-        url: ModxApiTalk.config.connector_url,
-        action: 'ModxApiTalk\\Processors\\ApiSource\\Update',
-        fields: this.getFields(config),
-        keys: [{
-            key: Ext.EventObject.ENTER, shift: true, fn: function () {
-                this.submit()
-            }, scope: this
-        }]
-    });
-    ModxApiTalk.window.UpdateSource.superclass.constructor.call(this, config);
+  });
+  ModxApiTalk.window.UpdateSource.superclass.constructor.call(this, config);
 };
 Ext.extend(ModxApiTalk.window.UpdateSource, MODx.Window, {
 
-    getFields: function (config) {
-        return [{
-            xtype: 'hidden',
-            name: 'id',
-            id: config.id + '-id',
-        }, {
-          xtype: 'textfield',
-          fieldLabel: _('modxapitalk_source_name'),
-          name: 'name',
-          anchor: '100%',
-          allowBlank: false,
-      }, {
-          xtype: 'textarea',
-          fieldLabel: _('modxapitalk_source_description'),
-          name: 'description',
-          anchor: '100%',
-      }, {
-          xtype: 'textfield',
-          fieldLabel: _('modxapitalk_source_url'),
-          name: 'url',
-          anchor: '100%',
-      }, {
-          xtype: 'modx-combo',
-          fieldLabel: _('modxapitalk_auth_type'),
-          name: 'auth_type',
-          hiddenName: 'auth_type',
-          store: [['none', 'None'], ['apikey', 'API Key'], ['bearer', 'Bearer']],
-          mode: 'local',
-          editable: false,
-          triggerAction: 'all',
-          anchor: '50%',
-      }, {
-          xtype: 'textfield',
-          fieldLabel: _('modxapitalk_auth_value'),
-          name: 'auth_value',
-          anchor: '100%',
-      }, {
-          xtype: 'textarea',
-          fieldLabel: _('modxapitalk_params'),
-          name: 'params',
-          anchor: '100%',
-          grow: true,
-          height: 80,
-          emptyText: '{"category":["sport","movie"], "lang":["en","ru"]}'
-      }, {
-          xtype: 'textarea',
-          fieldLabel: _('modxapitalk_extract_keys'),
-          name: 'extract_keys',
-          anchor: '100%',
-          grow: true,
-          height: 80,
-          emptyText: '["title","url","image"]'
-      }, {
-          xtype: 'xcheckbox',
-          boxLabel: _('modxapitalk_source_active'),
-          name: 'active',
-          inputValue: 1,
-          checked: true,
-        }];
+  getFields: function (config) {
+    return [{
+      xtype: 'hidden',
+      name: 'id',
+      id: config.id + '-id',
+    }, {
+      xtype: 'textfield',
+      fieldLabel: _('modxapitalk_source_name'),
+      name: 'name',
+      anchor: '100%',
+      allowBlank: false,
+    }, {
+      xtype: 'textarea',
+      fieldLabel: _('modxapitalk_source_description'),
+      name: 'description',
+      anchor: '100%',
+    }, {
+      xtype: 'textfield',
+      fieldLabel: _('modxapitalk_source_url'),
+      name: 'url',
+      anchor: '100%',
+    }, {
+      xtype: 'modx-combo',
+      fieldLabel: _('modxapitalk_auth_type'),
+      name: 'auth_type',
+      hiddenName: 'auth_type',
+      store: [['none', 'None'], ['apikey', 'API Key'], ['bearer', 'Bearer']],
+      mode: 'local',
+      editable: false,
+      triggerAction: 'all',
+      anchor: '50%',
+      },
+      {      
+      xtype: 'xcheckbox',
+      id: config.id + '-query-param-enabled',
+      boxLabel: _('modxapitalk_include_query_param'),
+      name: 'query_param_enabled',
+      inputValue: 1,
+      checked: false,
+      listeners: {
+      check: function (cb, checked) {
+        Ext.getCmp(config.id + '-query-param-field').setVisible(checked);
+      }
+      }
     },
+    {
+    xtype: 'textfield',
+    id: config.id + '-query-param-field',
+    fieldLabel: _('modxapitalk_query_param_name'),
+    name: 'query_param_value',
+    anchor: '100%',
+    hidden: true
+      },
+      {
+      xtype: 'textfield',
+      fieldLabel: _('modxapitalk_auth_value'),
+      name: 'auth_value',
+      anchor: '100%',
+    }, {
+      xtype: 'textarea',
+      fieldLabel: _('modxapitalk_params'),
+      name: 'params',
+      anchor: '100%',
+      grow: true,
+      height: 80,
+      emptyText: '{"category":["sport","movie"], "lang":["en","ru"]}'
+    }, {
+      xtype: 'textarea',
+      fieldLabel: _('modxapitalk_extract_keys'),
+      name: 'extract_keys',
+      anchor: '100%',
+      grow: true,
+      height: 80,
+      emptyText: 'title, url, image'
+    }, {
+      xtype: 'xcheckbox',
+      boxLabel: _('modxapitalk_source_active'),
+      name: 'active',
+      inputValue: 1,
+      checked: true,
+    }];
+  },
 
-    loadDropZones: function () {
-    }
+  loadDropZones: function () {
+  }
 
 });
 Ext.reg('modxapitalk-source-window-update', ModxApiTalk.window.UpdateSource);
+
+// --- Patch for setValues in updateItem (success.fn) ---
+ModxApiTalk.updateSourceSetValues = function(w, r) {
+  w.reset();
+console.log('[DEBUG] Prepared params:', r.object.params);
+  if (r.object.params && typeof r.object.params === 'object') {
+    if (typeof r.object.params === 'string') {
+      try {
+        r.object.params = JSON.parse(r.object.params);
+      } catch (e) {}
+    }
+
+    if (typeof r.object.params === 'object') {
+      r.object.params = Object.entries(r.object.params).map(([k, v]) => {
+        if (Array.isArray(v)) return `${k}: ${v.join(',')}`;
+        return `${k}: ${v}`;
+      }).join('\n');
+    }
+  }
+
+  if (r.object.query_param && typeof r.object.query_param === 'string') {
+    try {
+      r.object.query_param = JSON.parse(r.object.query_param);
+    } catch (e) {}
+  }
+  if (typeof r.object.query_param === 'object') {
+    r.object.query_param_enabled = true;
+    r.object.query_param_value = r.object.query_param.name_query || '';
+  }
+if (r.object.extract_keys && typeof r.object.extract_keys === 'string') {
+  try {
+    const parsed = JSON.parse(r.object.extract_keys);
+    if (Array.isArray(parsed)) {
+      r.object.extract_keys = parsed.join(', ');
+    }
+  } catch (e) {
+    // оставим как есть
+  }
+}
+  w.setValues(r.object);
+};
