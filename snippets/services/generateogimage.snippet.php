@@ -14,9 +14,6 @@ $token = $modx->runSnippet('ogToken'); // Получаем токен для п�
 $page = $modx->getObject('modResource', $id);
 $og = $page->getTVValue('ogImage');
 $intro = $page->getTVValue('imageIntro');
-
-echo $id . ' ' . $og . ' ' . $intro;
-
 if ($og) {
     $pthumb = $modx->runSnippet('pthumb', [
         'input' => $og,
